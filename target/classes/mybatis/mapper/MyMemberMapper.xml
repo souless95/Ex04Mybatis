@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper
+   PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+   "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!-- 해당 Mapper파일과 interface와의 연결을 위해 namespace를 설정한다.
+	이때 패키지명을 포함한 클래스의 전체경로를 기술해야한다. -->   
+<mapper namespace="mybatis.ServiceMyMember">
+	
+	<!-- 아이디, 패스워드를 통해 select한 결과 레코드를 DTO객체에
+	담아 반환한다. -->
+   <select id="login" resultType="mybatis.MyMemberDTO">
+      SELECT * FROM member WHERE id=#{param1} and pass=#{param2}
+   </select>
+   
+</mapper>
