@@ -74,4 +74,103 @@ namespace 속성 : 해당 매퍼파일을 호출하기 위해 정의한 인터�
   		UPDATE myboard SET name=#{name}, contents=#{contents}
   			WHERE idx=#{idx} AND id=#{id}
   	</update>
+  	
+  	<!-- delete 쿼리문을 실행하여 레코드를 삭제한다. 파라미터는 순서대로
+  	param1, 2와 같이 사용한다. -->
+  	<delete id="delete">
+		DELETE FROM myboard WHERE idx=#{param1}
+			AND id=#{param2}
+  	</delete>
+  	
+  	<select id="getTotalCountSearch" resultType="int"
+  		parameterType="mybatis.ParameterDTO">
+  		SELECT COUNT(*) FROM myboard
+  		<if test="searchTxt!=null and !searchTxt.equals('')">
+			WHERE ${searchField} like '%'||#{searchTxt}||'%' 		
+  		</if>
+  	</select>
+  	
+  	<!-- 
+  	검색어가 있는 경우 조건부로 동적쿼리문을 구성하기 위해 <if>문을
+  	사용한다. 파라미터는 ParameterDTO에 저장되어 전달되므로
+  	parameterType으로 명시해서 해당 객체에 저장된 값을 쿼리문에 적용한다.
+  	<if>문은 JSTL의 문법과 동일하며, 검색어가 null이거나 빈값이 아닐때만
+  	where절을 추가하도록 정의되어있다.
+  	-->
+  	<select id="listPageSearch" resultType="mybatis.MyBoardDTO"
+  		parameterType="mybatis.ParameterDTO">
+  		SELECT * FROM (
+  			SELECT Tb.*, rownum rNum FROM (
+  				SELECT * FROM myboard
+  				<if test="searchTxt!=null and !searchTxt.equals('')">
+  					WHERE ${searchField} like '%'||#{searchTxt}||'%' 
+  				</if>
+  				ORDER BY idx DESC
+  			) Tb
+  		)
+  		WHERE rNum<![CDATA[>=]]>#{start} AND rNum<![CDATA[<=]]>#{end}
+  	</select>
+  	<!-- 
+  	CDATA : Unparsed Character Data. 파싱되지 않는 문자데이터라는 뜻을 가지고 있다.
+  		Mapper에서는 꺽쇄괄호로 시작되는 모든 문자열을 엘리먼트로 판단하기 때문에
+  		쿼리문 사잉에 비교연산자를 사용하면 에러가 발생한다. 따라서 파싱되지 않는
+  		것을 명시하기 위해 CDATA를 사용해야 한다.
+  	-->
+  	
+  	<!-- 
+  	Map 컬렉션을 사용하는 경우 parameterTypedp "java.util.Map"
+  	혹은 "map" 두가지를 사용할 수 있다. 패키지명을 포함한 풀 경로를
+  	기술해야하지만 컬렉션은 JDK에서 기본으로 제공되는 클래스이므로
+  	패키지명은 생략할 수 있다.
+  	쿼리문의 인파라미터는 Map의 Key를 사용하면 된다.
+  	-->
+  	<select id="hashMapUse" resultType="mybatis.MyBoardDTO"
+  			parameterType="java.util.Map">
+  		SELECT * FROM myboard
+  		WHERE id=#{key_id} or name=#{key_name} or contents=#{key_contents}
+  		ORDER BY idx DESC
+  	</select>
+  	
+  	<!-- 
+  	ArrayList도 파라미터타입에 "java.util.ArrayList" 혹은 "list"로 명시할 수 있다.
+  	<foreach> 태그의 속성설명
+  		collection : List컬렉션을 사용하므로 list로 지정한다(규칙)
+  		item : 반복시 원소를 임시로 저장할 변수명
+  		index : 인덱스
+  		open : 동적쿼리문의 시작부분의 문자열
+  		close : 동적쿼리문의 종료부분의 문자열
+  		separator : 각 항목의 구분자로 설정(or, and 등)
+  	-->
+  	<select id="arrayListUse" resultType="mybatis.MyBoardDTO"
+  		parameterType="list">
+	  	SELECT * FROM myboard
+	  	WHERE
+	  	<foreach collection="list" item="item" index="index"
+	  		open="(" close=")" separator="or">
+	  		name=#{item}
+	  	</foreach>
+	  	ORDER BY idx DESC
+  	</select>
+  	<!-- 
+  	만약 컨트롤러에서 아래와 같이 전송한다면 <foreach>태그에서는
+  	쿼리문은 다음과 같다.
+  	컨트롤러에서 리스트에 저장한 값
+  		리스트.add("더조은")
+  		리스트.add("스프링")
+  	생성된 쿼리문
+  		SELECT ... WHERE (name='더조은' or name='스프링')
+  			...DESC
+  	-->
+  	
+  	<!-- 위에서 사용한 쿼리문을 in절로 변경하려면 이와같이 하면된다. -->
+  	<select id="tempMethodXXX" resultType="mybatis.MyBoardDTO"
+  		parameterType="list">
+	  	SELECT * FROM myboard
+	  	WHERE name in
+	  	<foreach collection="list" item="item" 
+	  	index="index" open="(" close=")" separator=",">
+	  		#{item}
+	  	</foreach>
+	  	ORDER BY idx DESC
+  	</select>
   </mapper>

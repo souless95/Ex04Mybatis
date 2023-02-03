@@ -18,8 +18,9 @@
 	}
 }*/
 $(function(){
-	$('#del').click(function(){
+	$('.del').click(function(e){
 		if(confirm("정말로 삭제하시겠습니까?")){
+			var idx = e.target.value;
 			location.href="delete.do?idx="+idx;
 		}	
 	});
@@ -50,6 +51,16 @@ $(function(){
 			방명록쓰기
 		</button>
 	</div>	
+	<div class="text-center">
+		<form method="get">
+			<select name="searchField">
+				<option value="contents">내용</option>
+				<option value="name">작성자</option>
+			</select>
+			<input type="text" name="searchTxt" />
+			<input type="submit" value="검색" />
+		</form>
+	</div>
 	<!-- 방명록 반복 부분 s -->
 	<c:forEach items="${lists }" var="row">		
 		<div class="border mt-2 mb-2">
@@ -69,7 +80,7 @@ $(function(){
 							수정					
 						</button>
 						<!-- onclick="javascript:deleteRow(${row.idx });" -->
-						<button id="del" class="btn btn-danger">
+						<button value="${row.idx }" class="btn btn-danger del">
 							삭제				
 						</button>
 					</c:if>

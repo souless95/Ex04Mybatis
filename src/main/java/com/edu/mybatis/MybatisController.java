@@ -78,7 +78,62 @@ public class MybatisController {
 		model.addAttribute("lists", lists);
 		return "07Mybatis/list";
 	}
-
+	
+	//기존 리스트에 검색기능을 추가한 컨트롤러 메서드
+	@RequestMapping("/mybatis/listSearch.do")
+	public String listSearch(Model model, HttpServletRequest req) {
+		
+		/*
+		리스트에서 검색어를 입력한 후 submit하면 아래 파라미터를 받아서
+		DTO에 저장해야 한다. 이 부분은 커맨드객체를 사용하면 아래 코드 없이
+		한꺼번에 폼값을 받아 저장할 수 있다.
+		*/
+		ParameterDTO parameterDTO = new ParameterDTO();
+		parameterDTO.setSearchField(req.getParameter("searchField"));
+		parameterDTO.setSearchTxt(req.getParameter("searchTxt"));
+		
+		//검색어가 있는 경우 파라미터를 저장한 DTO를 Mapper로 전달한다.
+		//이를 통해 where절을 <if>문으로 조건부로 삽입할 수 있다.
+		int totalRecordCount = sqlSession.getMapper(ServiceMyBoard.class).getTotalCountSearch(parameterDTO);
+		
+		//페이지 관련 설정값
+		int pageSize = 4;// 한 페이지당 게시물 수
+		int blockPage = 2;// 한 블럭당 페이지번호 수
+		
+		//전체 페이지수 계산
+		//int totalPage = (int) Math.ceil((double) totalRecordCount / pageSize);
+		
+		//현재 페이지번호 가져오기
+		int nowPage = (req.getParameter("nowPage") == null || req.getParameter("nowPage").equals("")) ? 1
+				: Integer.parseInt(req.getParameter("nowPage"));
+		
+		//출력할 페이지의 구간 계산
+		int start = (nowPage - 1) * pageSize + 1;
+		int end = nowPage * pageSize;
+		//계산된 값은 DTO객체에 저장
+		parameterDTO.setStart(start);
+		parameterDTO.setEnd(end);
+		
+		//서비스 인터페이스를 통해 Mapper를 호출한다.
+		ArrayList<MyBoardDTO> lists = sqlSession.getMapper(ServiceMyBoard.class).listPageSearch(parameterDTO);
+		
+		//페이지 바로가기 문자열 처리
+		String pagingImg = PagingUtil.pagingImg(totalRecordCount, pageSize, blockPage, nowPage,
+				req.getContextPath() + "/mybatis/list.do?");
+		model.addAttribute("pagingImg", pagingImg);
+		
+		//내용에 대해 줄바꿈 처리
+		for (MyBoardDTO dto : lists) {
+			String temp = dto.getContents().replace("\r\n", "<br/>");
+			dto.setContents(temp);
+		}
+		
+		//출력할 내용을 모델에 저장한 후 뷰 경로 반환
+		model.addAttribute("lists", lists);
+		return "07Mybatis/list_search";
+	}
+	
+	
 	public void setSqlSession(SqlSession sqlSession) {
 		this.sqlSession = sqlSession;
 	}
@@ -225,6 +280,29 @@ public class MybatisController {
 		System.out.println("수정된행의갯수:"+applyRow);
 		
 		//방명록 게시판은 상세보기 페이지가 없으므로 수정완료시 리스트로 이동하면 된다.
+		return "redirect:list.do";
+	}
+	
+	@RequestMapping("/mybatis/delete.do")
+	public String delete(HttpServletRequest req,
+			HttpSession session) {
+		//삭제는 본인만 가능하므로 로그인 확인을 진행한다.
+		if(session.getAttribute("siteUserInfo")==null) {
+			return "redirect:login.do";
+		}
+		/*
+		Service인터페이스를 통해 Mapper의 delete 메서드를 호출한다.
+		특히 아이디의 경우 session영역에 저장되어있으므로 DTO로 형변환 후
+		getter를 통해 아이디를 읽어와 인수로 전달한다.
+		*/
+		int applyRow = sqlSession.getMapper(ServiceMyBoard.class).
+				delete(req.getParameter("idx"),
+						((MyMemberDTO)session.getAttribute("siteUserInfo")).getId());
+		/* session영역에 속성을 저장하면 Object타입으로 변환되므로
+		꺼내서 사용할때는 원래의 타입으로 형변환(다운캐스팅) 해야한다.
+		코드의 우선순위를 따른 이슈가 있으면 소괄호를 적절히 사용해야한다. */
+		System.out.println("삭제된행의갯수:"+applyRow);
+		
 		return "redirect:list.do";
 	}
 }
